@@ -1,37 +1,67 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using dotnet6_auth_sqlite_api.Data;
+﻿using dotnet6_auth_sqlite_api.Data;
 using dotnet6_auth_sqlite_api.Models.Authentication;
 using dotnet6_auth_sqlite_api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace dotnet6_auth_sqlite_api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Administrator")]
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // POST: api/Users/Login
+        [AllowAnonymous]
         [HttpPost("/api/Login")]
-        public async Task<ActionResult<User>> Login(UserLogin userLogin)
+        public async Task<ActionResult<User>> Logins(UserLogin userLogin)
         {
-            var user = _context.Users.FirstOrDefault(user =>
-                user.Username.Equals(userLogin.UserName) &&
-                user.Password.Equals(EncryptionService.GetSHA256(userLogin.Password))
-               );
-            if (user == null) return NotFound();
-            return user;
+            if (!string.IsNullOrEmpty(userLogin.UserName) && !string.IsNullOrEmpty(userLogin.Password))
+            {
+                var loggedUser = _context.Users.FirstOrDefault(user =>
+                    user.Username.Equals(userLogin.UserName) &&
+                    user.Password.Equals(EncryptionService.GetSHA256(userLogin.Password))
+                );
+                if (loggedUser is null) return NotFound("User not found");
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, loggedUser.Username),
+                    new Claim(ClaimTypes.Role, loggedUser.Role)
+                };
+
+                var token = new JwtSecurityToken
+                (
+                    issuer: _configuration["Jwt:Issuer"],
+                    audience: _configuration["Jwt:Audience"],
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddDays(60),
+                    notBefore: DateTime.UtcNow,
+                    signingCredentials: new SigningCredentials
+                    (
+                        new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])),
+                        SecurityAlgorithms.HmacSha256
+                    )
+                );
+
+                var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+                return Ok(tokenString);
+            }
+            return BadRequest("Invalid username or password");
         }
 
         // GET: api/Users
@@ -56,7 +86,6 @@ namespace dotnet6_auth_sqlite_api.Controllers
         }
 
         // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser(int id, User user)
         {
@@ -89,7 +118,6 @@ namespace dotnet6_auth_sqlite_api.Controllers
         }
 
         // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {

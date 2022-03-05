@@ -1,5 +1,6 @@
 
 using dotnet6_auth_sqlite_api.Data;
+using dotnet6_auth_sqlite_api.Models.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -71,6 +72,8 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseAuthentication();
 
 app.MapControllers();
 
