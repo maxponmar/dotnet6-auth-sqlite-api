@@ -24,15 +24,20 @@ namespace dotnet6_auth_sqlite_api.Services
 
         public User Get(UserLogin userLogin)
         {
-            User user = _appDbContext.Users.FirstOrDefault(user =>
+            var user = _appDbContext.Users.FirstOrDefault(user =>
                 user.Username.Equals(userLogin.UserName, StringComparison.OrdinalIgnoreCase) && user.Password.Equals(userLogin.Password)
                );
+            _appDbContext.SaveChangesAsync();
             return user;
         }
 
         public User Update(User user)
         {
-            throw new NotImplementedException();
+            var newUser = _appDbContext.Users.FirstOrDefault(newUser => newUser.Id == user.Id);
+            if (newUser == null) return null;
+            _appDbContext.Users.Update(newUser);
+            _appDbContext.SaveChangesAsync();
+            return newUser;
         }
     }
 }
