@@ -14,7 +14,9 @@ namespace dotnet6_auth_sqlite_api.Services
         }
         public User Create(User user)
         {
-            throw new NotImplementedException();
+            user.Password = EncryptionService.GetSHA256(user.Password);
+            _appDbContext.Users.Add(user);
+            return user;
         }
 
         public bool Delete(int userId)
@@ -29,7 +31,8 @@ namespace dotnet6_auth_sqlite_api.Services
         public User Get(UserLogin userLogin)
         {
             var user = _appDbContext.Users.FirstOrDefault(user =>
-                user.Username.Equals(userLogin.UserName, StringComparison.OrdinalIgnoreCase) && user.Password.Equals(userLogin.Password)
+                user.Username.Equals(userLogin.UserName, StringComparison.OrdinalIgnoreCase) && 
+                user.Password.Equals(EncryptionService.GetSHA256(userLogin.Password))
                );
             _appDbContext.SaveChangesAsync();
             return user;
@@ -39,6 +42,7 @@ namespace dotnet6_auth_sqlite_api.Services
         {
             var newUser = _appDbContext.Users.FirstOrDefault(newUser => newUser.Id == user.Id);
             if (newUser == null) return null;
+            newUser.Password = EncryptionService.GetSHA256(newUser.Password);
             _appDbContext.Users.Update(newUser);
             _appDbContext.SaveChangesAsync();
             return newUser;
