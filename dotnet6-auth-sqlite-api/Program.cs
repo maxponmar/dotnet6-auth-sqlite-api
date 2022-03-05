@@ -7,11 +7,11 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 
 // Create Database if not exists
-//using (var db = new AppDbContext())
-//{
-//    db.Database.EnsureCreated();
-//    db.SaveChanges();
-//}
+using (var db = new AppDbContext())
+{
+    db.Database.EnsureCreated();
+    db.SaveChanges();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,10 +64,17 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<AppDbContext>();
 
+builder.Services.AddCors(p => p.AddPolicy("corsconfig", builder =>
+{
+    builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+}));
+
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseCors("corsconfig");
 
 app.UseHttpsRedirection();
 
