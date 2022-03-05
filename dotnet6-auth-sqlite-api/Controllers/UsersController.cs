@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using dotnet6_auth_sqlite_api.Data;
 using dotnet6_auth_sqlite_api.Models.Authentication;
+using dotnet6_auth_sqlite_api.Services;
 
 namespace dotnet6_auth_sqlite_api.Controllers
 {
@@ -19,6 +20,18 @@ namespace dotnet6_auth_sqlite_api.Controllers
         public UsersController(AppDbContext context)
         {
             _context = context;
+        }
+
+        // POST: api/Users/Login
+        [HttpPost("/api/Login")]
+        public async Task<ActionResult<User>> Login(UserLogin userLogin)
+        {
+            var user = _context.Users.FirstOrDefault(user =>
+                user.Username.Equals(userLogin.UserName) &&
+                user.Password.Equals(EncryptionService.GetSHA256(userLogin.Password))
+               );
+            if (user == null) return NotFound();
+            return user;
         }
 
         // GET: api/Users
@@ -47,6 +60,8 @@ namespace dotnet6_auth_sqlite_api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser(int id, User user)
         {
+            user.Password = EncryptionService.GetSHA256(user.Password);
+
             if (id != user.Id)
             {
                 return BadRequest();
@@ -78,6 +93,7 @@ namespace dotnet6_auth_sqlite_api.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {
+            user.Password = EncryptionService.GetSHA256(user.Password);
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 

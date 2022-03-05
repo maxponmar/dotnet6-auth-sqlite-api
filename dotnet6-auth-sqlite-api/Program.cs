@@ -2,11 +2,11 @@
 using dotnet6_auth_sqlite_api.Data;
 
 // Create Database if not exists
-using (var db = new AppDbContext())
-{
-    db.Database.EnsureCreated();
-    db.SaveChanges();
-}
+//using (var db = new AppDbContext())
+//{
+//    db.Database.EnsureCreated();
+//    db.SaveChanges();
+//}
 
 var builder = WebApplication.CreateBuilder(args);
 
