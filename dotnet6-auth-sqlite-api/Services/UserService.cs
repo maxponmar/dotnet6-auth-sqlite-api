@@ -19,7 +19,11 @@ namespace dotnet6_auth_sqlite_api.Services
 
         public bool Delete(int userId)
         {
-            throw new NotImplementedException();
+            var user = _appDbContext.Users.FirstOrDefault(user => user.Id == userId);
+            if (user == null) return false;
+            _appDbContext.Users.Remove(user);
+            _appDbContext.SaveChangesAsync();
+            return true;
         }
 
         public User Get(UserLogin userLogin)
